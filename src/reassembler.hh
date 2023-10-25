@@ -3,9 +3,27 @@
 #include "byte_stream.hh"
 
 #include <string>
-
+#include <set>
 class Reassembler
 {
+private:
+  struct datagram
+  {
+    uint64_t first_index;
+    std::string data;
+    bool operator<( const datagram& rhs ) const { 
+      if(first_index == rhs.first_index)  return data.size()<rhs.data.size();
+      return first_index < rhs.first_index; 
+    }
+    datagram( uint64_t first_indext, const std::string& datat )
+      : first_index( first_indext )
+      , data( datat )
+    {}
+  };
+  std::set<datagram> buffer {};
+  uint64_t bytes_written = 0;
+  uint64_t first_unwritten = 0;
+  bool coming_last = false;
 public:
   /*
    * Insert a new substring to be reassembled into a ByteStream.

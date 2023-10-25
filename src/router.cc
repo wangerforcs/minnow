@@ -24,6 +24,44 @@ void Router::add_route( const uint32_t route_prefix,
   (void)prefix_length;
   (void)next_hop;
   (void)interface_num;
+
+  if ( next_hop.has_value() ) {
+    router_table.push_back( { route_prefix, prefix_length, next_hop.value().ipv4_numeric(), interface_num } );
+  } else {
+    router_table.push_back( { route_prefix, prefix_length, std::nullopt, interface_num } );
+  }
 }
 
-void Router::route() {}
+void Router::route()
+{
+  // !!! &
+  for ( auto& inter : interfaces_ ) {
+    std::optional<InternetDatagram> maybe_dgram = inter.maybe_receive();
+    if ( maybe_dgram.has_value() ) {
+      InternetDatagram dgram = maybe_dgram.value();
+      if ( dgram.header.ttl <= 1 ) {
+        continue;
+      }
+      dgram.header.ttl--;
+      // !!!!
+      dgram.header.compute_checksum();
+      uint32_t dst_ip = dgram.header.dst;
+      int8_t max_prefix = -1;
+      size_t max_prefix_index = 0;
+      for ( size_t i = 0; i < router_table.size(); i++ ) {
+          if ( !router_table[i].prefix_length || (( dst_ip >> ( 32 - router_table[i].prefix_length ) )
+               == ( router_table[i].route_prefix >> ( 32 - router_table[i].prefix_length ) )) ) {
+            if(router_table[i].prefix_length > max_prefix)
+            {
+              max_prefix = router_table[i].prefix_length;
+              max_prefix_index = i;
+            }
+        }
+      }
+      if(max_prefix == -1)
+        continue;
+      interfaces_[router_table[max_prefix_index].interface_num].send_datagram(
+        dgram, Address::from_ipv4_numeric( router_table[max_prefix_index].next_hop.value_or( dst_ip ) ) );
+    }
+  }
+}

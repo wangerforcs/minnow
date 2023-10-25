@@ -6,6 +6,9 @@
 
 class TCPReceiver
 {
+private:
+  // Your private state goes here.
+  std::optional<Wrap32> isn = std::nullopt;
 public:
   /*
    * The TCPReceiver receives TCPSenderMessages, inserting their payload into the Reassembler

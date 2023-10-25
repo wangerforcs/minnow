@@ -10,7 +10,7 @@
 #include <queue>
 #include <unordered_map>
 #include <utility>
-
+#include <map>
 // A "network interface" that connects IP (the internet layer, or network layer)
 // with Ethernet (the network access layer, or link layer).
 
@@ -40,6 +40,14 @@ private:
 
   // IP (known as Internet-layer or network-layer) address of the interface
   Address ip_address_;
+  typedef uint32_t ip_addr_t;
+  typedef size_t time_t;
+  static constexpr time_t map_lmt = 30000;
+  static constexpr time_t arp_request_lmt = 5000;
+  std::map<ip_addr_t, std::pair<EthernetAddress,time_t>> arp_table{};
+  std::map<ip_addr_t, time_t> arp_request_table{};
+  std::queue<EthernetFrame> sending_queue{};
+  std::map<ip_addr_t, std::vector<EthernetFrame>> waiting_queue{};
 
 public:
   // Construct a network interface with given Ethernet (network-access-layer) and IP (internet-layer)
